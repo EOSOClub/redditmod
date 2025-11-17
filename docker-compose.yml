@@ -1,0 +1,48 @@
+services:
+  reddit-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reddit
+    image: reddit-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - HEALTH_HOST=0.0.0.0
+      - HEALTH_PORT=8520
+      - SEEN_CACHE_PATH=/app/data/seen_submissions.json
+      - LOG_FILE=/app/logs/reddit_bot.log   # point to /app/logs
+      - LOG_LEVEL=INFO
+      - POLL_INTERVAL=30
+      - REQUEST_DELAY=2
+    ports:
+      - "8520:8520"
+    volumes:
+      - reddit_bot_data:/app/data
+      - /home/eosofficial/RedditBot/logs:/app/logs   # <-- mount logs dir
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8520/health', timeout=3).status==200 else 1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    stdin_open: true
+    tty: true
+
+volumes:
+  reddit_bot_data:
+    driver: local

@@ -1,0 +1,141 @@
+Here’s a practical, high-level guide to how the Reddit bot currently works, how it’s structured, and how to run/operate it.
+
+Overview
+- Purpose: Monitor one or more subreddits for new submissions, apply your rules, and optionally message users. Exposes a lightweight health/metrics endpoint and writes structured logs.
+- Core flow:
+  1) Load configuration and initialize logging and Reddit API client.
+  2) Start a background health server.
+  3) Start one thread per configured subreddit to stream new submissions.
+  4) De-duplicate and pass each new submission to your rule handler.
+  5) Optionally send messages with a simple global rate limit.
+  6) Track metrics and persist a “seen” cache to avoid reprocessing.
+  7) Graceful shutdown on signals or user request.
+
+Key Components
+- Main runtime (reddit.py):
+  - Startup: Loads environment variables (.env supported), sets up a shutdown event, metrics, health server, seen-cache, and one monitoring thread per subreddit.
+  - Subreddit streaming: Uses Reddit’s streaming API to get new submissions with pause-after behavior, so the bot can check for shutdown without busy-waiting.
+  - De-duplication: Stores processed submission IDs in a JSON “seen” cache to prevent double-processing across restarts.
+  - Rule handling: For each new submission, calls your rule entry point handle_submission(submission, subreddit_name) from rules.handle_posts.
+  - Messaging: Provides a helper to message authors with a minimum global interval (rate limit) and retries with exponential backoff + jitter.
+  - Health/metrics: Runs a tiny HTTP server (default 127.0.0.1:8520) with /health and /metrics returning a JSON snapshot (uptime, processed counts, last IDs, last error, messages sent).
+  - Graceful shutdown: Responds to SIGTERM/SIGINT by stopping threads, saving the seen cache, and closing the health server.
+
+- Logging system (logs/log.py):
+  - Centralized logger factory with:
+    - Colored console output (for readability).
+    - File rotation (size- or time-based) and optional JSON log format.
+    - Custom formatters (indented multi-line formatting).
+    - Hook support to run custom functions on every log record.
+  - Convenience helpers for performance timing (decorator/context manager).
+  - You can configure verbosity, rotation, and output format per logger/module.
+
+- Docker helper (reddit.sh):
+  - One-step rebuild and restart:
+    - Brings down existing containers.
+    - Removes the previously built image of the target service (default reddit-bot).
+    - Rebuilds with --pull and starts the stack via docker compose.
+    - Tails logs from the target service.
+  - Uses COMPOSE_PROJECT_NAME=redditbot by default to keep resource names stable across runs.
+
+Configuration
+- Subreddit list:
+  - Coming from SUBREDDIT (supports a list or comma-separated string). The bot normalizes and deduplicates this list.
+- Rule configuration:
+  - SUBREDDIT_RULES is loaded and printed at startup for visibility; actual enforcement happens inside your handle_submission.
+- Seen cache:
+  - File path configurable via SEEN_CACHE_PATH (default seen_submissions.json). The bot autosaves every N new items.
+- Health server:
+  - HEALTH_HOST (default 127.0.0.1)
+  - HEALTH_PORT (default 8520)
+- Reddit credentials:
+  - Expected to be provided via your environment/.env and utilities.globals (client id/secret, user agent, etc., as you’ve already set up).
+- Docker:
+  - COMPOSE_PROJECT_NAME (default redditbot), can be overridden to avoid resource naming collisions.
+
+Runtime Lifecycle
+1) Process start:
+   - Loads environment.
+   - Installs signal handlers for graceful termination.
+   - Logs loaded rules and configuration.
+2) Health server:
+   - Starts a background thread serving JSON metrics at /health, /metrics, and /.
+3) Subreddit monitors:
+   - Spawns a thread per subreddit.
+   - Each thread consumes the subreddit’s submission stream with a small pause-after window to periodically check for shutdown.
+4) Submission handling:
+   - Skips any submission already present in the seen cache.
+   - Calls handle_submission(submission, subreddit_name).
+   - On success, marks the submission ID as seen and increments metrics.
+   - On error, records the last error and logs the exception (does not crash the process).
+5) Messaging:
+   - send_message enforces a minimum global interval (e.g., 2 seconds) between messages across the whole bot, so parallel rule actions don’t hammer the API.
+   - Retries on API exceptions with exponential backoff and jitter. Records metrics and last error accordingly.
+6) Shutdown:
+   - On SIGINT/SIGTERM (or when the stop event is set), the main thread:
+     - Signals all threads to stop and waits briefly for them to join.
+     - Persists the seen cache to disk.
+     - Closes the health server.
+     - Warns if any thread didn’t exit cleanly.
+
+Resilience and Rate Limiting
+- API backoff: On Reddit API exceptions from streaming or messaging, the bot backs off with exponential delays and jitter to avoid stampedes.
+- Graceful waiting: Uses efficient blocking (threading.Event) to avoid unnecessary wakeups and CPU churn.
+- Messaging throttle: Enforces a minimal gap between messages globally to stay respectful of rate limits and avoid spammy behavior.
+
+Threading Model
+- 1 main process.
+- 1 health server thread (daemon).
+- 1 subreddit monitor thread per subreddit (daemon).
+- Internal locks protect shared resources:
+  - Message send timestamp lock for global rate limiting.
+  - Seen cache lock for thread-safe additions and flush thresholds.
+  - Metrics internal lock for atomic increments and snapshots.
+
+Health and Metrics
+- Endpoint: http://HEALTH_HOST:HEALTH_PORT/health (also /metrics and /).
+- Returns a JSON snapshot including:
+  - uptime_seconds: How long the bot has been running.
+  - subreddits: Per-subreddit processed counts, last processed timestamp, last submission ID.
+  - messages_sent: Total messages sent.
+  - last_error: Last recorded error message and timestamp (if any).
+
+Operations Guide
+- Run locally:
+  - Ensure your environment variables/.env and utilities.globals are set up correctly (credentials, subreddit list, etc.).
+  - Start with your standard Python entry (the main module runs monitor_submissions).
+- Run with Docker:
+  - Have a suitable docker-compose.yml file in the repo root.
+  - Execute: ./reddit.sh
+    - This will rebuild the image, bring the stack up, and follow the target service logs.
+    - Pass a different service name as the first argument if your compose service isn’t reddit-bot.
+- Observability:
+  - Logs: Console shows colorized output; files are rotated and can be JSON- or text-formatted depending on logger setup.
+  - Health check: curl http://127.0.0.1:8520/health to verify liveness and to see per-subreddit progress.
+  - Seen cache: A JSON file (configurable path) persists processed IDs for deduplication across restarts.
+
+Extending or Modifying Behavior
+- Write rules in handle_submission:
+  - That function is the integration point for your custom logic. It receives a PRAW submission object plus the subreddit name.
+  - From within rules, you can call the provided send_message helper to message authors while respecting the global throttle and retry policy.
+- Add metrics if needed:
+  - You can extend the Metrics object usage to track rule-specific counters, but keep thread-safety by using its provided methods.
+- Tune limits:
+  - Messaging min interval can be adjusted if you need faster/slower messaging.
+  - Backoff parameters can be tuned per your API tolerance.
+
+Common Failure Scenarios and Handling
+- Temporary Reddit API errors:
+  - Streaming or messaging exceptions trigger exponential backoff with jitter; the system resumes automatically.
+- Unexpected exceptions in rules:
+  - Logged and recorded as last_error. Processing of other submissions continues.
+- Health server port in use:
+  - The bot logs a warning and keeps running without a health server if it can’t bind to the port.
+
+What You Need to Configure Before Running
+- Reddit API creds and globals (via .env and utilities.globals).
+- SUBREDDIT list (single or comma-separated).
+- Optional:
+  - SEEN_CACHE_PATH, HEALTH_HOST, HEALTH_PORT.
+  - Logging preferences if you want JSON logs or specific rotation settings.
+  - Docker compose project/service names.

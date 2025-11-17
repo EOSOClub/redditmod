@@ -1,0 +1,7 @@
+praw~=7.8.1
+pytz~=2025.2
+python-dotenv~=1.1.0
+better-profanity~=0.7.0
+pytest~=8.2.2
+pytest-mock~=3.14.0
+python-json-logger~=2.0.7

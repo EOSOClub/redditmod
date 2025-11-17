@@ -1,0 +1,136 @@
+{
+  "default_rules": {
+    "approve_if_no_rules_matched": {
+      "description": "Default action to approve the post if no other rule removes it."
+    }
+  },
+  "subreddits": {
+    "discordAd": {
+      "rules": [
+        {
+          "name": "check_account_restrictions",
+          "params": {
+            "min_account_age_days": 60,
+            "min_combined_karma": 20,
+            "reason": "🔒 Your account does not meet the minimum age (60 days) or karma (20) requirements for this subreddit."
+          }
+        },
+        {
+          "name": "enforce_rate_limit",
+          "params": {
+            "max_posts": 1,
+            "window_hours": 24,
+            "reason": "🕒 You may only post once every 24 hours in this subreddit."
+          }
+        },
+        {
+          "name": "disallow_nsfw_and_offensive",
+          "params": {
+            "reason": "🔞 This post was flagged as NSFW or containing offensive language, which is not allowed."
+          }
+        },
+        {
+          "name": "require_discord_link",
+          "params": {
+            "reason": "⚠️ Your post must include a valid Discord invite link (e.g., 'discord.gg/...')."
+          }
+        },
+        {
+          "name": "check_banned_patterns",
+          "params": {
+            "patterns": [
+              "(?i)\\binvite[-\\s]?for[-\\s]?invite\\b",
+              "(?i)\\bfree\\s+nitro\\b",
+              "(?i)\\bnitro\\s+(gift|drop|link|redeem|code)\\b",
+              "(?i)\\bdiscord\\s+nitro\\s+for\\s+free\\b",
+              "(?i)\\bclaim\\s+(your\\s+)?reward\\b",
+              "(?i)\\b(get|earn)\\s+free\\s+(boosts?|tokens?)\\b",
+              "(?i)\\bfree\\s+tokens?\\b",
+              "(?i)\\bsteam\\s+gift\\b",
+              "(?i)\\byou['’]ve\\s+been\\s+selected\\b",
+              "(?i)\\bclick\\s+here\\s+to\\s+claim\\b",
+              "(?i)\\blimited\\s+time\\s+offer\\b",
+              "(?i)\\bair\\s?drop\\b",
+              "(?i)\\bwallet\\s*connect\\b|\\bwalletconnect\\b",
+              "(?i)\\blog\\s*in\\s+to\\s+receive\\b",
+              "(?i)\\blink\\s+your\\s+discord\\b",
+              "(?i)\\bearn\\b.*\\bcrypto\\b",
+              "(?i)\\bverify\\s+to\\s+claim\\b",
+              "(?i)\\bnitro\\b.*\\bgiveaway\\b.*\\b(no\\s*verify|no\\s*scam)\\b",
+              "(?i)\\bexclusive\\s+(air\\s?drop|drop|offer)\\b",
+              "(?i)\\bpromo\\s*code\\b",
+              "(?i)\\bjoin\\b.*\\bserver\\b.*\\bto\\b.*\\bclaim\\b",
+              "(?i)\\bhacked\\s+account\\b",
+              "(?i)\\bthis\\s+isn['’]t\\s+a?\\s*scam\\b",
+              "\\btrust\\s+me\\b.*\\bfree\\s+stuff\\b",
+              "(?i)\\b(partner(ship)?|collab|collaboration)\\b.*\\b(dm|contact|inbox)\\b",
+              "(?i)\\b(verify|captcha)\\b.*\\b(bot|page|site|link)\\b",
+              "(?i)\\bcrypto\\b.*\\b(air\\s?drop|reward|bonus|mint)\\b",
+              "(?i)\\bnft\\b.*\\b(whitelist|mint|air\\s?drop)\\b",
+              "(?i)\\btelegram\\b.*\\b(join|contact|dm)\\b"
+            ],
+            "reason": "🚫 Your post contains banned keywords related to scams or spam and has been removed."
+          }
+        },
+        {
+          "name": "require_ad_flair",
+          "params": {
+            "flairs": ["Advertisement", "Sponsored", "Gaming", "Community", "Tech & Development", "Art & Creative", "Education & Study", "International", "Niche Interest"],
+            "reason": "Posts in this subreddit must have a relevant flair indicating the server type."
+          }
+        }
+      ]
+    },
+    "discord_chatter": {
+      "rules": [
+        {
+          "name": "enforce_rate_limit",
+          "params": {
+            "max_posts": 5,
+            "window_minutes": 15,
+            "reason": "🕒 To encourage quality discussion, you are limited to 5 posts every 15 minutes."
+          }
+        },
+        {
+          "name": "disallow_nsfw_and_offensive",
+          "params": {
+            "reason": "🔞 This post was flagged as NSFW or containing offensive language, which is not allowed."
+          }
+        },
+        {
+          "name": "respect_privacy",
+          "params": {
+            "reason": "🔒 Respect people's privacy. No doxxing, leaking personal info, sharing usernames, or exposing others without consent."
+          }
+        },
+        {
+          "name": "check_banned_patterns",
+          "params": {
+            "patterns": [
+              "(?i)\\b(subscribe|follow)\\s+my\\s+(instagram|insta|tiktok|youtube|channel)\\b",
+              "(?i)\\b(dm|pm)\\s+me\\s+for\\s+(promo|partnership|collab|nitro)\\b",
+              "(?i)\\bselling?\\b.*\\b(nitro|tokens?|invites?)\\b",
+              "(?i)\\bjoin\\s+my\\s+server\\b.*\\bfor\\b.*\\b(rewards?|gifts?|nitro)\\b",
+              "(?i)discord.gg/"
+            ],
+            "reason": "🚫 Your post appears to be self-promotion or an advertisement, which is not allowed in this subreddit."
+          }
+        },
+        {
+            "name": "monitor_for_heated_discussion_keywords",
+            "params": {
+                "keywords": ["idiot", "stupid", "garbage", "toxic", "cancer"],
+                "reason": "Your post contains language that may lead to uncivil discussion. Please edit your post to use more neutral language."
+            }
+        },
+        {
+          "name": "require_ad_flair",
+          "params": {
+            "flairs": ["Discussion", "Question", "News", "Idea", "Theory", "Help", "Announcement", "Poll", "AMA", "Casual Chat", "Serious Discussion", "Humor", "Rant", "Positive Vibes"],
+            "reason": "Posts in this subreddit must have a relevant flair indicating the discussion type or tone."
+          }
+        }
+      ]
+    }
+  }
+}
