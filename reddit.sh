@@ -13,8 +13,8 @@ cd "$SCRIPT_DIR"
 command -v git >/dev/null 2>&1 || { echo "[reddit.sh] git not found. Cannot manage updates."; exit 1; }
 
 if [ -d ".git" ]; then
-  echo "[reddit.sh] Git repository found. Checking for updates via git pull..."
-  git pull || { echo "[reddit.sh] git pull failed. Continuing with existing code."; }
+  echo "[reddit.sh] Git repository found. Resetting to latest from origin..."
+  (git fetch && git reset --hard origin/main) || { echo "[reddit.sh] git reset failed. Continuing with existing code."; }
 else
   echo "[reddit.sh] No git repository found."
   if [ -z "${GIT_REPO_URL:-}" ]; then
