@@ -9,6 +9,15 @@ trap '__exit_rc=$?; if [ "$__exit_rc" -ne 0 ]; then echo "[reddit.sh] Error (exi
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Check for git and pull latest changes
+command -v git >/dev/null 2>&1 || { echo "[reddit.sh] git not found. Cannot check for updates."; exit 1; }
+if [ -d ".git" ]; then
+  echo "[reddit.sh] Checking for updates via git pull..."
+  git pull || { echo "[reddit.sh] git pull failed. Continuing with existing code."; }
+else
+  echo "[reddit.sh] Not a git repository. Skipping git pull."
+fi
+
 DOCKER_COMPOSE="docker compose"
 
 # Optional: set project name for consistent names across runs

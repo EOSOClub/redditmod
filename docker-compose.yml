@@ -20,7 +20,7 @@ services:
       - "8520:8520"
     volumes:
       - reddit_bot_data:/app/data
-      - /home/eosofficial/RedditBot/logs:/app/logs   # <-- mount logs dir
+      - ./logs:/app/logs   # <-- mount logs dir relative to the project root
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8520/health', timeout=3).status==200 else 1)\""]
       interval: 15s
