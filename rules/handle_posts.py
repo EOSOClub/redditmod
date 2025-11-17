@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional, Callable
 
 from utilities.globals import chicago_tz, recent_posts, SUBREDDIT_RULES
+from utilities.messaging import send_reply_with_footer
 from utilities.ratelimiter import RATE_LIMITER
 from utilities.metrics import METRICS
 from . import rule_functions
@@ -52,7 +53,7 @@ def _make_log(submission, subreddit_name: str) -> logging.LoggerAdapter:
     return logging.LoggerAdapter(logger, extra)
 
 
-def _apply_moderation_action(submission, reason: str, triggered_rule: str, log: logging.LoggerAdapter):
+def _apply_moderation_action(submission, reason: str, triggered_rule: str, log: logging.LoggerAdapter, subreddit_name: str):
     """Removes a post and replies with the reason."""
     try:
         # Increment the counter for the triggered rule first
@@ -68,7 +69,7 @@ def _apply_moderation_action(submission, reason: str, triggered_rule: str, log: 
             extra={"reason": reason, "triggered_rule": triggered_rule, "action": "remove"},
         )
         with RATE_LIMITER:
-            submission.reply(reason)
+            send_reply_with_footer(submission, reason, subreddit_name)
     except Exception as e:
         log.exception(f"Failed to apply moderation action for rule '{triggered_rule}': {e}")
 
@@ -143,7 +144,7 @@ def handle_submission(submission, subreddit_name: str) -> None:
 
         # --- Apply Final Action ---
         if removal_reason and triggered_rule:
-            _apply_moderation_action(submission, removal_reason, triggered_rule, log)
+            _apply_moderation_action(submission, removal_reason, triggered_rule, log, subreddit_name)
         else:
             # If no rules resulted in removal, approve the post
             _approve_post(submission, log)
