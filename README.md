@@ -1,5 +1,3 @@
-Here’s a concise README you can drop into your repo.
-
 # Reddit Bot
 
 Monitor one or more subreddits for new submissions, apply your rules, optionally message users, and expose a lightweight health/metrics endpoint. Includes structured logging and graceful shutdown.
