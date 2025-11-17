@@ -94,5 +94,3 @@ curl http://127.0.0.1:8520/health
 - Docker issues
   - Confirm Docker and docker compose are installed and that a compose file exists in the project root.
   - Pass the correct service name to the helper script if your service isn’t named “reddit-bot”.
-
-Have any preferences for the exact variable names for Reddit credentials or want me to add an example .env section?
