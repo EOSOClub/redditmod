@@ -9,13 +9,20 @@ trap '__exit_rc=$?; if [ "$__exit_rc" -ne 0 ]; then echo "[reddit.sh] Error (exi
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Check for git and pull latest changes
-command -v git >/dev/null 2>&1 || { echo "[reddit.sh] git not found. Cannot check for updates."; exit 1; }
+# Check for git and pull/clone latest changes
+command -v git >/dev/null 2>&1 || { echo "[reddit.sh] git not found. Cannot manage updates."; exit 1; }
+
 if [ -d ".git" ]; then
-  echo "[reddit.sh] Checking for updates via git pull..."
+  echo "[reddit.sh] Git repository found. Checking for updates via git pull..."
   git pull || { echo "[reddit.sh] git pull failed. Continuing with existing code."; }
 else
-  echo "[reddit.sh] Not a git repository. Skipping git pull."
+  echo "[reddit.sh] No git repository found."
+  if [ -z "${GIT_REPO_URL:-}" ]; then
+    echo "[reddit.sh] Error: GIT_REPO_URL environment variable is not set. Cannot clone repository."
+    exit 1
+  fi
+  echo "[reddit.sh] Cloning repository from ${GIT_REPO_URL}..."
+  git clone "${GIT_REPO_URL}" . || { echo "[reddit.sh] git clone failed. Exiting."; exit 1; }
 fi
 
 DOCKER_COMPOSE="docker compose"
